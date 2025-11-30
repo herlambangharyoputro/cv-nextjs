@@ -11,6 +11,9 @@ export default function CVPage() {
   const [profile, setProfile] = useState(null)
   const [experiences, setExperiences] = useState([])
   const [loading, setLoading] = useState(true)
+  const [skills, setSkills] = useState([])
+  const [education, setEducation] = useState([])
+  const [certifications, setCertifications] = useState([])
 
   useEffect(() => {
     fetchData()
@@ -29,6 +32,22 @@ export default function CVPage() {
       const expRes = await fetch('/api/experiences')
       const expData = await expRes.json()
       setExperiences(expData || [])
+ 
+      // Fetch skills
+      const skillsRes = await fetch('/api/skills')
+      const skillsData = await skillsRes.json()
+      setSkills(skillsData || [])
+
+      // Fetch education
+      const eduRes = await fetch('/api/education')
+      const eduData = await eduRes.json()
+      setEducation(eduData || [])
+ 
+      // Fetch certifications
+      const certRes = await fetch('/api/certifications')
+      const certData = await certRes.json()
+      setCertifications(certData || [])
+
     } catch (error) {
       console.error('Error fetching data:', error)
     } finally {
@@ -311,7 +330,7 @@ export default function CVPage() {
       </section>
 
       <Separator className="my-8" />
-
+ 
       {/* Skills */}
       <section id="skills" className="container max-w-screen-2xl py-8 md:py-12 lg:py-16">
         <div className="mx-auto flex max-w-[980px] flex-col items-start gap-2">
@@ -322,21 +341,40 @@ export default function CVPage() {
             </h2>
           </div>
 
-          <Card className="w-full">
-            <CardHeader>
-              <CardTitle>Skills & Technologies</CardTitle>
-              <CardDescription>Technologies and tools I work with</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="text-center py-8 text-muted-foreground">
-                <p>Technical skills will appear here</p>
-              </div>
-            </CardContent>
-          </Card>
+          {skills.length === 0 ? (
+            <Card className="w-full">
+              <CardHeader>
+                <CardTitle>Skills & Technologies</CardTitle>
+                <CardDescription>Technologies and tools I work with</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="text-center py-8 text-muted-foreground">
+                  <p>Technical skills will appear here</p>
+                </div>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid gap-6 w-full md:grid-cols-2">
+              {skills.map((skillCategory) => (
+                <Card key={skillCategory.id}>
+                  <CardHeader>
+                    <CardTitle className="text-lg">{skillCategory.category}</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex flex-wrap gap-2">
+                      {skillCategory.skills?.map((skill, idx) => (
+                        <Badge key={idx} variant="secondary" className="text-sm">
+                          {skill}
+                        </Badge>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
         </div>
       </section>
-
-      <Separator className="my-8" />
 
       {/* Education */}
       <section id="education" className="container max-w-screen-2xl py-8 md:py-12 lg:py-16">
@@ -348,17 +386,157 @@ export default function CVPage() {
             </h2>
           </div>
 
-          <Card className="w-full">
-            <CardHeader>
-              <CardTitle>Academic Background</CardTitle>
-              <CardDescription>My educational qualifications</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="text-center py-8 text-muted-foreground">
-                <p>Education history will appear here</p>
-              </div>
-            </CardContent>
-          </Card>
+          {education.length === 0 ? (
+            <Card className="w-full">
+              <CardHeader>
+                <CardTitle>Academic Background</CardTitle>
+                <CardDescription>My educational qualifications</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="text-center py-8 text-muted-foreground">
+                  <p>Education history will appear here</p>
+                </div>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="space-y-6 w-full">
+              {education.map((edu) => (
+                <Card key={edu.id} className="w-full">
+                  <CardContent className="pt-6">
+                    <div className="flex flex-col md:flex-row md:items-start md:justify-between mb-4">
+                      <div className="flex-1">
+                        <h3 className="text-xl font-bold mb-1">
+                          {edu.degree}{edu.field_of_study && ` in ${edu.field_of_study}`}
+                        </h3>
+                        <p className="text-lg text-primary font-semibold mb-2">{edu.institution}</p>
+                        
+                        <div className="flex flex-wrap gap-3 text-sm text-muted-foreground">
+                          {edu.location && <span>{edu.location}</span>}
+                          <span>{edu.start_year} - {edu.end_year || 'Present'}</span>
+                          {edu.gpa && <span>• GPA: {edu.gpa}</span>}
+                        </div>
+                      </div>
+                    </div>
+
+                    {edu.thesis_title && (
+                      <div className="mb-4">
+                        <p className="text-sm font-semibold text-muted-foreground mb-1">Thesis:</p>
+                        <p className="text-sm">{edu.thesis_title}</p>
+                      </div>
+                    )}
+
+                    {edu.specialization && edu.specialization.length > 0 && (
+                      <div className="mb-4">
+                        <p className="text-sm font-semibold text-muted-foreground mb-2">Specialization:</p>
+                        <div className="flex flex-wrap gap-2">
+                          {edu.specialization.map((spec, idx) => (
+                            <Badge key={idx} variant="outline">
+                              {spec}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {edu.achievements && edu.achievements.length > 0 && (
+                      <div>
+                        <p className="text-sm font-semibold text-muted-foreground mb-2">Achievements:</p>
+                        <ul className="space-y-1 ml-4">
+                          {edu.achievements.map((achievement, idx) => (
+                            <li key={idx} className="text-sm list-disc">
+                              {achievement}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </div>
+      </section>
+
+      <Separator className="my-8" />
+      
+      {/* Certifications */}
+      <section id="certifications" className="container max-w-screen-2xl py-8 md:py-12 lg:py-16">
+        <div className="mx-auto flex max-w-[980px] flex-col items-start gap-2">
+          <div className="flex items-center gap-2 mb-8">
+            <Award className="h-6 w-6" />
+            <h2 className="text-3xl font-bold leading-tight tracking-tighter md:text-4xl lg:leading-[1.1]">
+              Certifications
+            </h2>
+          </div>
+
+          {certifications.length === 0 ? (
+            <Card className="w-full">
+              <CardHeader>
+                <CardTitle>Professional Certifications</CardTitle>
+                <CardDescription>My certifications and awards</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="text-center py-8 text-muted-foreground">
+                  <p>Certifications will appear here</p>
+                </div>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid gap-4 w-full md:grid-cols-2">
+              {certifications.map((cert) => (
+                <Card key={cert.id}>
+                  <CardContent className="pt-6">
+                    <div className="flex items-start gap-3 mb-3">
+                      <div className="p-2 bg-primary/10 rounded-lg">
+                        <Award className="h-5 w-5 text-primary" />
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="font-bold mb-1">{cert.name}</h3>
+                        <p className="text-sm text-muted-foreground">{cert.issuer}</p>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2 text-sm text-muted-foreground">
+                      {cert.issue_date && (
+                        <div>
+                          Issued: {new Date(cert.issue_date).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
+                        </div>
+                      )}
+                      
+                      {cert.expiry_date && (
+                        <div>
+                          {new Date(cert.expiry_date) < new Date() ? (
+                            <Badge variant="outline" className="text-xs">
+                              Expired: {new Date(cert.expiry_date).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
+                            </Badge>
+                          ) : (
+                            <span>
+                              Expires: {new Date(cert.expiry_date).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
+                            </span>
+                          )}
+                        </div>
+                      )}
+
+                      {cert.credential_id && (
+                        <div className="text-xs">
+                          Credential ID: {cert.credential_id}
+                        </div>
+                      )}
+                    </div>
+
+                    {cert.credential_url && (
+                      <Button variant="link" size="sm" className="mt-3 p-0 h-auto" asChild>
+                        <a href={cert.credential_url} target="_blank" rel="noopener noreferrer">
+                          View Credential <ExternalLink className="ml-1 h-3 w-3" />
+                        </a>
+                      </Button>
+                    )}
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
         </div>
       </section>
 
