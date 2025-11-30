@@ -1,7 +1,8 @@
 import { supabase } from '@/lib/supabase'
 import { NextResponse } from 'next/server'
+import { checkAuth, unauthorizedResponse } from '@/lib/auth-middleware'
 
-// GET - ambil semua profiles
+// GET - Public (anyone can view)
 export async function GET() {
   const { data, error } = await supabase
     .from('profiles')
@@ -15,8 +16,14 @@ export async function GET() {
   return NextResponse.json(data)
 }
 
-// POST - tambah profile baru
+// POST - Protected (only authenticated users)
 export async function POST(request) {
+  const { authenticated } = await checkAuth(request)
+  
+  if (!authenticated) {
+    return unauthorizedResponse()
+  }
+
   const body = await request.json()
   
   const { data, error } = await supabase

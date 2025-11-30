@@ -1,7 +1,8 @@
 import { supabase } from '@/lib/supabase'
 import { NextResponse } from 'next/server'
+import { checkAuth, unauthorizedResponse } from '@/lib/auth-middleware'
 
-// GET single profile
+// GET - Public
 export async function GET(request, { params }) {
   const { data, error } = await supabase
     .from('profiles')
@@ -16,8 +17,14 @@ export async function GET(request, { params }) {
   return NextResponse.json(data)
 }
 
-// PUT - update profile
+// PUT - Protected
 export async function PUT(request, { params }) {
+  const { authenticated } = await checkAuth(request)
+  
+  if (!authenticated) {
+    return unauthorizedResponse()
+  }
+
   const body = await request.json()
   
   const { data, error } = await supabase
@@ -33,8 +40,14 @@ export async function PUT(request, { params }) {
   return NextResponse.json(data[0])
 }
 
-// DELETE - hapus profile
+// DELETE - Protected
 export async function DELETE(request, { params }) {
+  const { authenticated } = await checkAuth(request)
+  
+  if (!authenticated) {
+    return unauthorizedResponse()
+  }
+
   const { error } = await supabase
     .from('profiles')
     .delete()
