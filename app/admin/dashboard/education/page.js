@@ -104,9 +104,16 @@ export default function EducationPage() {
 
     try {
       const headers = await getAuthHeaders()
+      
+      // Get profile ID dynamically
+      const { data: profileData } = await supabase.from('profiles').select('id').limit(1).single()
+      if (!profileData) {
+        throw new Error('Profile not found. Please create a profile first.')
+      }
+
       const payload = {
         ...form,
-        profile_id: 1,
+        profile_id: profileData.id,
         gpa: form.gpa ? parseFloat(form.gpa) : null,
         start_year: form.start_year ? parseInt(form.start_year) : null,
         end_year: form.end_year ? parseInt(form.end_year) : null
@@ -118,7 +125,8 @@ export default function EducationPage() {
           headers,
           body: JSON.stringify(payload)
         })
-        if (!res.ok) throw new Error('Failed to update')
+        const data = await res.json()
+        if (!res.ok) throw new Error(data.error || 'Failed to update')
         setSuccess('Education updated successfully!')
       } else {
         const res = await fetch('/api/education', {
@@ -126,7 +134,8 @@ export default function EducationPage() {
           headers,
           body: JSON.stringify(payload)
         })
-        if (!res.ok) throw new Error('Failed to create')
+        const data = await res.json()
+        if (!res.ok) throw new Error(data.error || 'Failed to create')
         setSuccess('Education created successfully!')
       }
       

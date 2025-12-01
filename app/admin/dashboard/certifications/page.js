@@ -86,9 +86,16 @@ export default function CertificationsPage() {
 
     try {
       const headers = await getAuthHeaders()
+      
+      // Get profile ID dynamically
+      const { data: profileData } = await supabase.from('profiles').select('id').limit(1).single()
+      if (!profileData) {
+        throw new Error('Profile not found. Please create a profile first.')
+      }
+
       const payload = {
         ...form,
-        profile_id: 1
+        profile_id: profileData.id
       }
 
       if (editingId) {
@@ -97,7 +104,8 @@ export default function CertificationsPage() {
           headers,
           body: JSON.stringify(payload)
         })
-        if (!res.ok) throw new Error('Failed to update')
+        const data = await res.json()
+        if (!res.ok) throw new Error(data.error || 'Failed to update')
         setSuccess('Certification updated successfully!')
       } else {
         const res = await fetch('/api/certifications', {
@@ -105,7 +113,8 @@ export default function CertificationsPage() {
           headers,
           body: JSON.stringify(payload)
         })
-        if (!res.ok) throw new Error('Failed to create')
+        const data = await res.json()
+        if (!res.ok) throw new Error(data.error || 'Failed to create')
         setSuccess('Certification created successfully!')
       }
       

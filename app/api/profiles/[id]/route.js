@@ -3,11 +3,18 @@ import { NextResponse } from 'next/server'
 import { checkAuth, unauthorizedResponse } from '@/lib/auth-middleware'
 
 // GET - Public
-export async function GET(request, { params }) {
+export async function GET(request, context) {
+  const params = await context.params
+  const id = parseInt(params.id)
+  
+  if (isNaN(id)) {
+    return NextResponse.json({ error: 'Invalid ID' }, { status: 400 })
+  }
+
   const { data, error } = await supabase
     .from('profiles')
     .select('*')
-    .eq('id', params.id)
+    .eq('id', id)
     .single()
   
   if (error) {
@@ -18,40 +25,59 @@ export async function GET(request, { params }) {
 }
 
 // PUT - Protected
-export async function PUT(request, { params }) {
+export async function PUT(request, context) {
   const { authenticated } = await checkAuth(request)
   
   if (!authenticated) {
     return unauthorizedResponse()
   }
 
-  const body = await request.json()
-  
-  const { data, error } = await supabase
-    .from('profiles')
-    .update(body)
-    .eq('id', params.id)
-    .select()
-  
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 400 })
+  try {
+    const params = await context.params
+    const id = parseInt(params.id)
+    
+    if (isNaN(id)) {
+      return NextResponse.json({ error: 'Invalid ID' }, { status: 400 })
+    }
+
+    const body = await request.json()
+    
+    const { data, error } = await supabase
+      .from('profiles')
+      .update(body)
+      .eq('id', id)
+      .select()
+      .single()
+    
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 400 })
+    }
+    
+    return NextResponse.json(data)
+  } catch (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 })
   }
-  
-  return NextResponse.json(data[0])
 }
 
-// DELETE - Protected
-export async function DELETE(request, { params }) {
+// DELETE - Protected (optional, mungkin tidak perlu)
+export async function DELETE(request, context) {
   const { authenticated } = await checkAuth(request)
   
   if (!authenticated) {
     return unauthorizedResponse()
+  }
+
+  const params = await context.params
+  const id = parseInt(params.id)
+  
+  if (isNaN(id)) {
+    return NextResponse.json({ error: 'Invalid ID' }, { status: 400 })
   }
 
   const { error } = await supabase
     .from('profiles')
     .delete()
-    .eq('id', params.id)
+    .eq('id', id)
   
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 400 })

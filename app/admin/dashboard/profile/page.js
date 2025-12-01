@@ -73,23 +73,25 @@ export default function ProfilePage() {
     try {
       const headers = await getAuthHeaders()
       
-      if (profile) {
-        // Update existing
+      if (profile && profile.id) {
+        // Update existing profile
         const res = await fetch(`/api/profiles/${profile.id}`, {
           method: 'PUT',
           headers,
           body: JSON.stringify(form)
         })
-        if (!res.ok) throw new Error('Failed to update')
+        const data = await res.json()
+        if (!res.ok) throw new Error(data.error || 'Failed to update')
         setSuccess('Profile updated successfully!')
       } else {
-        // Create new
+        // Create new profile (first time)
         const res = await fetch('/api/profiles', {
           method: 'POST',
           headers,
           body: JSON.stringify(form)
         })
-        if (!res.ok) throw new Error('Failed to create')
+        const data = await res.json()
+        if (!res.ok) throw new Error(data.error || 'Failed to create')
         setSuccess('Profile created successfully!')
       }
       
