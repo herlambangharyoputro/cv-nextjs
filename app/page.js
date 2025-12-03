@@ -1,140 +1,64 @@
-'use client'
-import { useState, useEffect } from 'react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
+import { supabase } from '@/lib/supabase'
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Separator } from "@/components/ui/separator"
-import { Mail, Phone, MapPin, Github, Linkedin, Globe, Briefcase, GraduationCap, Award, ExternalLink, ArrowRight, Calendar, MapPinIcon } from 'lucide-react'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { MapPin, Mail, Phone, Github, Linkedin, Briefcase, GraduationCap, Award, ExternalLink, Sparkles, TrendingUp, Zap } from "lucide-react"
 import VisitorCounter from '@/components/visitor-counter'
 
-export default function CVPage() {
-  const [profile, setProfile] = useState(null)
-  const [experiences, setExperiences] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [skills, setSkills] = useState([])
-  const [education, setEducation] = useState([])
-  const [certifications, setCertifications] = useState([])
+export default async function Home() {
+  // Fetch all data
+  const { data: profiles } = await supabase.from('profiles').select('*').limit(1)
+  const { data: experiences } = await supabase
+    .from('work_experiences')
+    .select(`
+      *,
+      work_achievements (*),
+      technologies_used (*)
+    `)
+    .order('start_date', { ascending: false })
+  
+  const { data: skills } = await supabase.from('skills').select('*').order('category')
+  const { data: education } = await supabase.from('education').select('*').order('start_year', { ascending: false })
 
-  useEffect(() => {
-    fetchData()
-  }, [])
+  const profile = profiles?.[0] || {}
 
-  const fetchData = async () => {
-    try {
-      // Fetch profile
-      const profileRes = await fetch('/api/profiles')
-      const profileData = await profileRes.json()
-      if (profileData.length > 0) {
-        setProfile(profileData[0])
-      }
-
-      // Fetch experiences
-      const expRes = await fetch('/api/experiences')
-      const expData = await expRes.json()
-      setExperiences(expData || [])
- 
-      // Fetch skills
-      const skillsRes = await fetch('/api/skills')
-      const skillsData = await skillsRes.json()
-      setSkills(skillsData || [])
-
-      // Fetch education
-      const eduRes = await fetch('/api/education')
-      const eduData = await eduRes.json()
-      setEducation(eduData || [])
- 
-      // Fetch certifications
-      const certRes = await fetch('/api/certifications')
-      const certData = await certRes.json()
-      setCertifications(certData || [])
-
-    } catch (error) {
-      console.error('Error fetching data:', error)
-    } finally {
-      setLoading(false)
-    }
-  }
-
+  // Helper functions
   const formatDate = (dateString) => {
     const date = new Date(dateString)
     return date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
   }
- 
+
   const calculateDuration = (startDate, endDate, isCurrent) => {
-    if (!startDate) return ''
-    
     const start = new Date(startDate)
-    const end = isCurrent ? new Date() : (endDate ? new Date(endDate) : new Date())
-    
-    // Calculate months difference
-    let months = (end.getFullYear() - start.getFullYear()) * 12
-    months += end.getMonth() - start.getMonth()
-    
-    // Handle negative months (shouldn't happen but just in case)
-    if (months < 0) months = 0
-    
+    const end = isCurrent ? new Date() : new Date(endDate)
+    const months = (end.getFullYear() - start.getFullYear()) * 12 + end.getMonth() - start.getMonth()
     const years = Math.floor(months / 12)
     const remainingMonths = months % 12
     
     if (years > 0 && remainingMonths > 0) {
-      return `${years} yr${years > 1 ? 's' : ''} ${remainingMonths} mo${remainingMonths > 1 ? 's' : ''}`
+      return `${years}y ${remainingMonths}m`
     } else if (years > 0) {
-      return `${years} yr${years > 1 ? 's' : ''}`
+      return `${years}y`
     } else {
-      return `${remainingMonths} mo${remainingMonths > 1 ? 's' : ''}`
+      return `${remainingMonths}m`
     }
   }
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="text-center space-y-4">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-          <p className="text-muted-foreground">Loading profile...</p>
-        </div>
-      </div>
-    )
-  }
-
-  if (!profile) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <Card className="w-96">
-          <CardHeader>
-            <CardTitle>No Profile Found</CardTitle>
-            <CardDescription>Please add a profile from the admin dashboard</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Button asChild>
-              <a href="/admin/login">Go to Admin</a>
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    )
-  }
-
   return (
-    <div className="min-h-screen bg-background">
+    <div className="flex min-h-screen flex-col gradient-bg">
       {/* Header */}
       <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container mx-auto px-4 flex h-16 max-w-screen-2xl items-center justify-between">
+        <div className="container mx-auto px-4 max-w-screen-2xl flex h-14 items-center justify-between">
           <div className="flex items-center gap-2">
-            <Avatar className="h-8 w-8">
-              <AvatarImage src={profile.photo_url} />
-              <AvatarFallback className="text-xs">{profile.full_name?.substring(0, 2).toUpperCase()}</AvatarFallback>
-            </Avatar>
-            <a href="/" className="font-bold hover:text-primary transition-colors">
-              {profile.full_name}
-            </a>
+            <span className="font-bold text-lg gradient-text">{profile.full_name || 'Portfolio'}</span>
           </div>
           
           <nav className="hidden md:flex items-center gap-6 text-sm">
-            <a href="#about" className="transition-colors hover:text-foreground text-foreground/60">About</a>
-            <a href="#experience" className="transition-colors hover:text-foreground text-foreground/60">Experience</a>
-            <a href="#skills" className="transition-colors hover:text-foreground text-foreground/60">Skills</a>
-            <a href="#education" className="transition-colors hover:text-foreground text-foreground/60">Education</a>
+            <a href="#about" className="transition-colors hover:text-primary text-foreground/80">About</a>
+            <a href="#experience" className="transition-colors hover:text-primary text-foreground/80">Experience</a>
+            <a href="#skills" className="transition-colors hover:text-primary text-foreground/80">Skills</a>
+            <a href="#education" className="transition-colors hover:text-primary text-foreground/80">Education</a>
           </nav>
 
           <div className="flex items-center gap-2">
@@ -145,238 +69,285 @@ export default function CVPage() {
                 </a>
               </Button>
             )}
-            <Button size="sm" asChild>
+            <Button size="sm" className="glow-animation" asChild>
               <a href="#contact">Contact</a>
             </Button>
           </div>
         </div>
       </header>
 
-      {/* Hero */}
-      <section className="container flex max-w-screen-2xl flex-col items-center gap-4 pb-8 pt-6 md:py-10">
-        <div className="mx-auto flex max-w-[980px] flex-col items-center gap-4 text-center">
-          <Avatar className="h-32 w-32 border-4 border-border">
+      {/* Hero Section */}
+      <section className="container flex max-w-screen-2xl flex-col items-center gap-8 pb-8 pt-12 md:py-16">
+        <div className="mx-auto flex max-w-[980px] flex-col items-center gap-6 text-center">
+          <Avatar className="h-40 w-40 border-4 border-primary/20 shadow-2xl ring-4 ring-primary/10 float-animation">
             <AvatarImage src={profile.photo_url} alt={profile.full_name} />
-            <AvatarFallback className="text-4xl">{profile.full_name?.substring(0, 2).toUpperCase()}</AvatarFallback>
+            <AvatarFallback className="text-5xl gradient-text">{profile.full_name?.substring(0, 2).toUpperCase()}</AvatarFallback>
           </Avatar>
 
-          <h1 className="text-4xl font-bold leading-tight tracking-tighter md:text-6xl lg:leading-[1.1]">
-            {profile.full_name}
-          </h1>
-          
-          {profile.title && (
-            <span className="inline-flex items-center rounded-full border px-4 py-1.5 text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-primary text-primary-foreground hover:bg-primary/80">
-              {profile.title}
-            </span>
-          )}
+          <div className="space-y-4">
+            <h1 className="text-5xl font-bold leading-tight tracking-tighter md:text-7xl lg:leading-[1.1] text-shadow-md">
+              {profile.full_name}
+            </h1>
+            
+            {profile.title && (
+              <div className="flex items-center justify-center gap-2">
+                <Sparkles className="h-5 w-5 text-primary animate-pulse" />
+                <span className="inline-flex items-center rounded-full px-6 py-2 text-lg font-semibold gradient-card">
+                  {profile.title}
+                </span>
+                <Sparkles className="h-5 w-5 text-secondary animate-pulse" />
+              </div>
+            )}
 
-          {profile.location && (
-            <div className="flex items-center gap-2 text-muted-foreground">
-              <MapPin className="h-4 w-4" />
-              <span className="text-sm">{profile.location}</span>
+            {profile.location && (
+              <div className="flex items-center justify-center gap-2 text-lg text-muted-foreground">
+                <MapPin className="h-5 w-5 text-primary" />
+                {profile.location}
+              </div>
+            )}
+          </div>
+
+          {/* Achievement Highlights */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 w-full max-w-3xl mt-8">
+            <div className="achievement-card text-center">
+              <div className="flex items-center justify-center gap-2 mb-2">
+                <TrendingUp className="h-6 w-6 text-primary" />
+                <span className="text-3xl font-bold gradient-text">10+</span>
+              </div>
+              <p className="text-sm text-muted-foreground">Years Experience</p>
             </div>
-          )}
-
-          {profile.professional_summary && (
-            <p className="max-w-[750px] text-lg text-muted-foreground sm:text-xl">
-              {profile.professional_summary}
-            </p>
-          )}
-
-          <div className="flex flex-wrap gap-2 justify-center mt-4">
-            {profile.email && (
-              <Button variant="default" asChild>
-                <a href={`mailto:${profile.email}`}>
-                  <Mail className="mr-2 h-4 w-4" />
-                  Get in touch
-                </a>
-              </Button>
-            )}
-            {profile.github_url && (
-              <Button variant="outline" asChild>
-                <a href={profile.github_url} target="_blank" rel="noopener noreferrer">
-                  <Github className="mr-2 h-4 w-4" />
-                  GitHub
-                </a>
-              </Button>
-            )}
-            {profile.linkedin_url && (
-              <Button variant="outline" asChild>
-                <a href={profile.linkedin_url} target="_blank" rel="noopener noreferrer">
-                  <Linkedin className="mr-2 h-4 w-4" />
-                  LinkedIn
-                </a>
-              </Button>
-            )}
+            <div className="achievement-card text-center">
+              <div className="flex items-center justify-center gap-2 mb-2">
+                <Zap className="h-6 w-6 text-secondary" />
+                <span className="text-3xl font-bold gradient-text">99-100%</span>
+              </div>
+              <p className="text-sm text-muted-foreground">ML Model Accuracy</p>
+            </div>
+            <div className="achievement-card text-center">
+              <div className="flex items-center justify-center gap-2 mb-2">
+                <Award className="h-6 w-6 text-primary" />
+                <span className="text-3xl font-bold gradient-text">15+</span>
+              </div>
+              <p className="text-sm text-muted-foreground">Projects Delivered</p>
+            </div>
           </div>
         </div>
       </section>
 
-      <Separator className="my-8" />
+      {/* About Section */}
+      <section id="about" className="container max-w-screen-2xl py-8 md:py-12">
+        <div className="mx-auto max-w-[980px]">
+          <Card className="gradient-card">
+            <CardHeader>
+              <CardTitle className="text-2xl">About Me</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {profile.summary && (
+                <p className="text-lg leading-relaxed text-foreground/90">
+                  {profile.summary}
+                </p>
+              )}
+              
+              {(profile.email || profile.phone || profile.github_url || profile.linkedin_url) && (
+                <div className="flex flex-wrap gap-4 pt-4 border-t border-border/50">
+                  {profile.email && (
+                    <a href={`mailto:${profile.email}`} className="flex items-center gap-2 text-sm hover:text-primary transition-colors">
+                      <Mail className="h-4 w-4" />
+                      <span className="text-foreground/80">{profile.email}</span>
+                    </a>
+                  )}
+                  {profile.phone && (
+                    <a href={`tel:${profile.phone}`} className="flex items-center gap-2 text-sm hover:text-primary transition-colors">
+                      <Phone className="h-4 w-4" />
+                      <span className="text-foreground/80">{profile.phone}</span>
+                    </a>
+                  )}
+                  {profile.github_url && (
+                    <a href={profile.github_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm hover:text-primary transition-colors">
+                      <Github className="h-4 w-4" />
+                      <span className="text-foreground/80">GitHub</span>
+                    </a>
+                  )}
+                  {profile.linkedin_url && (
+                    <a href={profile.linkedin_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm hover:text-primary transition-colors">
+                      <Linkedin className="h-4 w-4" />
+                      <span className="text-foreground/80">LinkedIn</span>
+                    </a>
+                  )}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      </section>
 
-      {/* Experience */}
+      {/* Experience Section */}
       <section id="experience" className="container max-w-screen-2xl py-8 md:py-12 lg:py-16">
-        <div className="mx-auto flex max-w-[980px] flex-col items-start gap-2">
-          <div className="flex items-center gap-2 mb-8">
-            <Briefcase className="h-6 w-6" />
-            <h2 className="text-3xl font-bold leading-tight tracking-tighter md:text-4xl lg:leading-[1.1]">
+        <div className="mx-auto flex max-w-[980px] flex-col items-start gap-8">
+          <div className="flex items-center gap-3">
+            <Briefcase className="h-7 w-7 text-primary" />
+            <h2 className="text-4xl font-bold leading-tight tracking-tighter lg:leading-[1.1]">
               Professional Experience
             </h2>
           </div>
 
-          {experiences.length === 0 ? (
-            <Card className="w-full">
-              <CardHeader>
-                <CardTitle>Work History</CardTitle>
-                <CardDescription>My professional journey and key accomplishments</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="text-center py-8 text-muted-foreground">
-                  <p>Work experiences will appear here</p>
-                </div>
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="space-y-6 w-full">
-              {experiences.map((exp, index) => (
-                <Card key={exp.id} className="w-full">
-                  <CardContent className="pt-6">
-                    <div className="flex flex-col md:flex-row md:items-start md:justify-between mb-4">
-                      <div className="flex-1">
-                        <h3 className="text-xl font-bold mb-1">{exp.position}</h3>
-                        <p className="text-lg text-primary font-semibold mb-2">{exp.company_name}</p>
-                        
-                        <div className="flex flex-wrap gap-3 text-sm text-muted-foreground mb-3">
-                          {exp.location && (
-                            <div className="flex items-center gap-1">
-                              <MapPinIcon className="h-3 w-3" />
-                              <span>{exp.location}</span>
-                            </div>
-                          )}
-                          {exp.employment_type && (
-                            <Badge variant="outline" className="font-normal">
-                              {exp.employment_type}
-                            </Badge>
-                          )}
+          {experiences && experiences.length > 0 ? (
+            <div className="w-full space-y-6">
+              {experiences.map((exp) => (
+                <div key={exp.id} className="timeline-item">
+                  <Card className="gradient-card">
+                    <CardHeader>
+                      <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
+                        <div className="space-y-2">
+                          <CardTitle className="text-xl">{exp.position}</CardTitle>
+                          <CardDescription className="text-base font-semibold text-primary">
+                            {exp.company_name}
+                          </CardDescription>
+                          <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
+                            {exp.location && (
+                              <span className="flex items-center gap-1">
+                                <MapPin className="h-4 w-4" />
+                                {exp.location}
+                              </span>
+                            )}
+                            {exp.employment_type && (
+                              <Badge variant="outline" className="text-xs">
+                                {exp.employment_type}
+                              </Badge>
+                            )}
+                          </div>
                         </div>
-
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                          <Calendar className="h-3 w-3" />
-                          <span>
+                        <div className="flex flex-col items-end gap-2">
+                          <span className="stat-highlight text-sm whitespace-nowrap">
                             {formatDate(exp.start_date)} - {exp.is_current ? 'Present' : (exp.end_date ? formatDate(exp.end_date) : 'Present')}
                           </span>
                           {exp.start_date && (
-                            <span className="text-xs">
-                              • {calculateDuration(exp.start_date, exp.end_date, exp.is_current)}
+                            <span className="text-xs text-muted-foreground">
+                              {calculateDuration(exp.start_date, exp.end_date, exp.is_current)}
                             </span>
                           )}
-                        </div> 
-                      </div>
-                    </div>
-
-                    {exp.description && (
-                      <p className="text-muted-foreground mb-4 leading-relaxed">
-                        {exp.description}
-                      </p>
-                    )}
-
-                    {exp.work_achievements && exp.work_achievements.length > 0 && (
-                      <div className="mb-4">
-                        <h4 className="font-semibold mb-3 text-sm uppercase tracking-wide text-muted-foreground">
-                          Key Achievements
-                        </h4>
-                        
-                        {/* Group by category if exists */}
-                        {exp.work_achievements.some(ach => ach.category) ? (
-                          <div className="space-y-4">
-                            {[...new Set(exp.work_achievements.map(ach => ach.category || 'General'))].map(category => (
-                              <div key={category}>
-                                {category !== 'General' && (
-                                  <Badge variant="secondary" className="mb-2">{category}</Badge>
-                                )}
-                                <ul className="space-y-2 ml-4">
-                                  {exp.work_achievements
-                                    .filter(ach => (ach.category || 'General') === category)
-                                    .map((ach) => (
-                                      <li key={ach.id} className="text-sm leading-relaxed list-disc">
-                                        {ach.achievement}
-                                      </li>
-                                    ))}
-                                </ul>
-                              </div>
-                            ))}
-                          </div>
-                        ) : (
-                          <ul className="space-y-2 ml-4">
-                            {exp.work_achievements.map((ach) => (
-                              <li key={ach.id} className="text-sm leading-relaxed list-disc">
-                                {ach.achievement}
-                              </li>
-                            ))}
-                          </ul>
-                        )}
-                      </div>
-                    )}
-
-                    {exp.technologies_used && exp.technologies_used[0]?.technologies && (
-                      <div>
-                        <h4 className="font-semibold mb-2 text-sm uppercase tracking-wide text-muted-foreground">
-                          Technologies Used
-                        </h4>
-                        <div className="flex flex-wrap gap-2">
-                          {exp.technologies_used[0].technologies.map((tech, idx) => (
-                            <Badge key={idx} variant="secondary">
-                              {tech}
-                            </Badge>
-                          ))}
                         </div>
                       </div>
-                    )}
-                  </CardContent>
-                </Card>
+                    </CardHeader>
+
+                    <CardContent className="space-y-4">
+                      {exp.description && (
+                        <p className="text-foreground/90 leading-relaxed">
+                          {exp.description}
+                        </p>
+                      )}
+
+                      {exp.work_achievements && exp.work_achievements.length > 0 && (
+                        <div className="space-y-3">
+                          <h4 className="font-semibold text-sm uppercase tracking-wide text-primary flex items-center gap-2">
+                            <Award className="h-4 w-4" />
+                            Key Achievements
+                          </h4>
+                          
+                          {exp.work_achievements.some(ach => ach.category) ? (
+                            <div className="space-y-4">
+                              {Object.entries(
+                                exp.work_achievements.reduce((acc, ach) => {
+                                  const cat = ach.category || 'General'
+                                  if (!acc[cat]) acc[cat] = []
+                                  acc[cat].push(ach)
+                                  return acc
+                                }, {})
+                              ).map(([category, achievements]) => (
+                                <div key={category} className="space-y-2">
+                                  <h5 className="font-medium text-sm text-secondary">{category}</h5>
+                                  <ul className="space-y-2 ml-4">
+                                    {achievements.map((ach, idx) => (
+                                      <li key={idx} className="text-sm text-foreground/80 leading-relaxed flex items-start gap-2">
+                                        <span className="text-primary mt-1">•</span>
+                                        <span>{ach.achievement}</span>
+                                      </li>
+                                    ))}
+                                  </ul>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <ul className="space-y-2">
+                              {exp.work_achievements.map((ach, idx) => (
+                                <li key={idx} className="text-sm text-foreground/80 leading-relaxed flex items-start gap-2">
+                                  <span className="text-primary mt-1">•</span>
+                                  <span>{ach.achievement}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          )}
+                        </div>
+                      )}
+
+                      {exp.technologies_used && exp.technologies_used.length > 0 && (
+                        <div className="space-y-2 pt-4 border-t border-border/50">
+                          <h4 className="font-semibold text-xs uppercase tracking-wide text-muted-foreground">
+                            Technologies Used
+                          </h4>
+                          <div className="flex flex-wrap gap-2">
+                            {exp.technologies_used.map((tech, idx) => (
+                              <span key={idx} className="skill-badge">
+                                {tech.technology}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                </div>
               ))}
             </div>
+          ) : (
+            <Card className="w-full gradient-card">
+              <CardContent className="text-center py-12">
+                <p className="text-muted-foreground">Professional experience will appear here</p>
+              </CardContent>
+            </Card>
           )}
         </div>
       </section>
 
-      <Separator className="my-8" />
- 
-      {/* Skills */}
+      {/* Skills Section */}
       <section id="skills" className="container max-w-screen-2xl py-8 md:py-12 lg:py-16">
-        <div className="mx-auto flex max-w-[980px] flex-col items-start gap-2">
-          <div className="flex items-center gap-2 mb-8">
-            <Award className="h-6 w-6" />
-            <h2 className="text-3xl font-bold leading-tight tracking-tighter md:text-4xl lg:leading-[1.1]">
-              Technical Expertise
+        <div className="mx-auto flex max-w-[980px] flex-col items-start gap-8">
+          <div className="flex items-center gap-3">
+            <Zap className="h-7 w-7 text-secondary" />
+            <h2 className="text-4xl font-bold leading-tight tracking-tighter lg:leading-[1.1]">
+              Skills & Expertise
             </h2>
           </div>
 
-          {skills.length === 0 ? (
-            <Card className="w-full">
-              <CardHeader>
-                <CardTitle>Skills & Technologies</CardTitle>
-                <CardDescription>Technologies and tools I work with</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="text-center py-8 text-muted-foreground">
-                  <p>Technical skills will appear here</p>
-                </div>
+          {!skills || skills.length === 0 ? (
+            <Card className="w-full gradient-card">
+              <CardContent className="text-center py-12">
+                <p className="text-muted-foreground">Technical skills will appear here</p>
               </CardContent>
             </Card>
           ) : (
             <div className="grid gap-6 w-full md:grid-cols-2">
               {skills.map((skillCategory) => (
-                <Card key={skillCategory.id}>
+                <Card key={skillCategory.id} className="gradient-card">
                   <CardHeader>
-                    <CardTitle className="text-lg">{skillCategory.category}</CardTitle>
+                    <CardTitle className="text-xl flex items-center gap-2">
+                      {skillCategory.category.includes('Machine Learning') || skillCategory.category.includes('ML') || skillCategory.category.includes('AI') ? (
+                        <span className="text-secondary">⚡</span>
+                      ) : (
+                        <span className="text-primary">◆</span>
+                      )}
+                      {skillCategory.category}
+                    </CardTitle>
                   </CardHeader>
                   <CardContent>
                     <div className="flex flex-wrap gap-2">
                       {skillCategory.skills?.map((skill, idx) => (
-                        <Badge key={idx} variant="secondary" className="text-sm">
+                        <span 
+                          key={idx} 
+                          className={skillCategory.category.includes('Machine Learning') || skillCategory.category.includes('ML') || skillCategory.category.includes('AI') ? 'skill-badge-ml' : 'skill-badge'}
+                        >
                           {skill}
-                        </Badge>
+                        </span>
                       ))}
                     </div>
                   </CardContent>
@@ -387,61 +358,72 @@ export default function CVPage() {
         </div>
       </section>
 
-      {/* Education */}
+      {/* Education Section */}
       <section id="education" className="container max-w-screen-2xl py-8 md:py-12 lg:py-16">
-        <div className="mx-auto flex max-w-[980px] flex-col items-start gap-2">
-          <div className="flex items-center gap-2 mb-8">
-            <GraduationCap className="h-6 w-6" />
-            <h2 className="text-3xl font-bold leading-tight tracking-tighter md:text-4xl lg:leading-[1.1]">
+        <div className="mx-auto flex max-w-[980px] flex-col items-start gap-8">
+          <div className="flex items-center gap-3">
+            <GraduationCap className="h-7 w-7 text-primary" />
+            <h2 className="text-4xl font-bold leading-tight tracking-tighter lg:leading-[1.1]">
               Education
             </h2>
           </div>
 
-          {education.length === 0 ? (
-            <Card className="w-full">
-              <CardHeader>
-                <CardTitle>Academic Background</CardTitle>
-                <CardDescription>My educational qualifications</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="text-center py-8 text-muted-foreground">
-                  <p>Education history will appear here</p>
-                </div>
+          {!education || education.length === 0 ? (
+            <Card className="w-full gradient-card">
+              <CardContent className="text-center py-12">
+                <p className="text-muted-foreground">Education history will appear here</p>
               </CardContent>
             </Card>
           ) : (
-            <div className="space-y-6 w-full">
+            <div className="w-full space-y-6">
               {education.map((edu) => (
-                <Card key={edu.id} className="w-full">
-                  <CardContent className="pt-6">
-                    <div className="flex flex-col md:flex-row md:items-start md:justify-between mb-4">
-                      <div className="flex-1">
-                        <h3 className="text-xl font-bold mb-1">
-                          {edu.degree}{edu.field_of_study && ` in ${edu.field_of_study}`}
-                        </h3>
-                        <p className="text-lg text-primary font-semibold mb-2">{edu.institution}</p>
-                        
-                        <div className="flex flex-wrap gap-3 text-sm text-muted-foreground">
-                          {edu.location && <span>{edu.location}</span>}
-                          <span>{edu.start_year} - {edu.end_year || 'Present'}</span>
-                          {edu.gpa && <span>• GPA: {edu.gpa}</span>}
-                        </div>
+                <Card key={edu.id} className="gradient-card">
+                  <CardHeader>
+                    <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
+                      <div className="space-y-2">
+                        <CardTitle className="text-xl">{edu.degree}</CardTitle>
+                        <CardDescription className="text-base font-semibold text-primary">
+                          {edu.institution}
+                        </CardDescription>
+                        {edu.field_of_study && (
+                          <p className="text-sm text-muted-foreground">{edu.field_of_study}</p>
+                        )}
+                        {edu.location && (
+                          <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                            <MapPin className="h-4 w-4" />
+                            {edu.location}
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex flex-col items-end gap-2">
+                        <span className="stat-highlight text-sm whitespace-nowrap">
+                          {edu.start_year} - {edu.end_year || 'Present'}
+                        </span>
+                        {edu.gpa && (
+                          <Badge variant="outline" className="text-xs">
+                            GPA: {edu.gpa}
+                          </Badge>
+                        )}
                       </div>
                     </div>
+                  </CardHeader>
 
+                  <CardContent className="space-y-4">
                     {edu.thesis_title && (
-                      <div className="mb-4">
-                        <p className="text-sm font-semibold text-muted-foreground mb-1">Thesis:</p>
-                        <p className="text-sm">{edu.thesis_title}</p>
+                      <div>
+                        <h4 className="font-semibold text-sm text-secondary mb-1">Thesis</h4>
+                        <p className="text-sm text-foreground/80 italic">{edu.thesis_title}</p>
                       </div>
                     )}
 
                     {edu.specialization && edu.specialization.length > 0 && (
-                      <div className="mb-4">
-                        <p className="text-sm font-semibold text-muted-foreground mb-2">Specialization:</p>
+                      <div className="space-y-2">
+                        <h4 className="font-semibold text-xs uppercase tracking-wide text-muted-foreground">
+                          Specialization
+                        </h4>
                         <div className="flex flex-wrap gap-2">
                           {edu.specialization.map((spec, idx) => (
-                            <Badge key={idx} variant="outline">
+                            <Badge key={idx} variant="outline" className="text-xs">
                               {spec}
                             </Badge>
                           ))}
@@ -450,12 +432,16 @@ export default function CVPage() {
                     )}
 
                     {edu.achievements && edu.achievements.length > 0 && (
-                      <div>
-                        <p className="text-sm font-semibold text-muted-foreground mb-2">Achievements:</p>
-                        <ul className="space-y-1 ml-4">
+                      <div className="space-y-2">
+                        <h4 className="font-semibold text-xs uppercase tracking-wide text-muted-foreground flex items-center gap-2">
+                          <Award className="h-3 w-3" />
+                          Achievements
+                        </h4>
+                        <ul className="space-y-1">
                           {edu.achievements.map((achievement, idx) => (
-                            <li key={idx} className="text-sm list-disc">
-                              {achievement}
+                            <li key={idx} className="text-sm text-foreground/80 flex items-start gap-2">
+                              <span className="text-primary mt-1">•</span>
+                              <span>{achievement}</span>
                             </li>
                           ))}
                         </ul>
@@ -469,102 +455,20 @@ export default function CVPage() {
         </div>
       </section>
 
-      <Separator className="my-8" />
-      
-      {/* Certifications */}
-      <section id="certifications" className="container max-w-screen-2xl py-8 md:py-12 lg:py-16">
-        <div className="mx-auto flex max-w-[980px] flex-col items-start gap-2">
-          <div className="flex items-center gap-2 mb-8">
-            <Award className="h-6 w-6" />
-            <h2 className="text-3xl font-bold leading-tight tracking-tighter md:text-4xl lg:leading-[1.1]">
-              Certifications
-            </h2>
-          </div>
-
-          {certifications.length === 0 ? (
-            <Card className="w-full">
-              <CardHeader>
-                <CardTitle>Professional Certifications</CardTitle>
-                <CardDescription>My certifications and awards</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="text-center py-8 text-muted-foreground">
-                  <p>Certifications will appear here</p>
-                </div>
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="grid gap-4 w-full md:grid-cols-2">
-              {certifications.map((cert) => (
-                <Card key={cert.id}>
-                  <CardContent className="pt-6">
-                    <div className="flex items-start gap-3 mb-3">
-                      <div className="p-2 bg-primary/10 rounded-lg">
-                        <Award className="h-5 w-5 text-primary" />
-                      </div>
-                      <div className="flex-1">
-                        <h3 className="font-bold mb-1">{cert.name}</h3>
-                        <p className="text-sm text-muted-foreground">{cert.issuer}</p>
-                      </div>
-                    </div>
-
-                    <div className="space-y-2 text-sm text-muted-foreground">
-                      {cert.issue_date && (
-                        <div>
-                          Issued: {new Date(cert.issue_date).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
-                        </div>
-                      )}
-                      
-                      {cert.expiry_date && (
-                        <div>
-                          {new Date(cert.expiry_date) < new Date() ? (
-                            <Badge variant="outline" className="text-xs">
-                              Expired: {new Date(cert.expiry_date).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
-                            </Badge>
-                          ) : (
-                            <span>
-                              Expires: {new Date(cert.expiry_date).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
-                            </span>
-                          )}
-                        </div>
-                      )}
-
-                      {cert.credential_id && (
-                        <div className="text-xs">
-                          Credential ID: {cert.credential_id}
-                        </div>
-                      )}
-                    </div>
-
-                    {cert.credential_url && (
-                      <Button variant="link" size="sm" className="mt-3 p-0 h-auto" asChild>
-                        <a href={cert.credential_url} target="_blank" rel="noopener noreferrer">
-                          View Credential <ExternalLink className="ml-1 h-3 w-3" />
-                        </a>
-                      </Button>
-                    )}
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          )}
-        </div>
-      </section>
-
-      <Separator className="my-8" />
-
-      {/* Contact CTA */}
+      {/* Contact Section */}
       <section id="contact" className="container max-w-screen-2xl py-8 md:py-12 lg:py-16">
-        <div className="mx-auto flex max-w-[980px] flex-col items-center gap-4 text-center">
-          <h2 className="text-3xl font-bold leading-tight tracking-tighter md:text-4xl lg:leading-[1.1]">
-            Ready to start a project?
-          </h2>
-          <p className="max-w-[750px] text-lg text-muted-foreground">
-            I'm available for freelance work and new opportunities.
-          </p>
-          <div className="flex flex-wrap gap-4 justify-center mt-4">
+        <div className="mx-auto flex max-w-[800px] flex-col items-center gap-6 text-center">
+          <div className="space-y-4">
+            <h2 className="text-4xl font-bold leading-tight tracking-tighter lg:leading-[1.1]">
+              Let's Work Together
+            </h2>
+            <p className="max-w-[600px] text-lg text-muted-foreground">
+              I'm available for freelance work and new opportunities. Let's create something amazing together.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-4 justify-center mt-6">
             {profile.email && (
-              <Button size="lg" asChild>
+              <Button size="lg" className="glow-animation" asChild>
                 <a href={`mailto:${profile.email}`}>
                   <Mail className="mr-2 h-5 w-5" />
                   Send me an email
@@ -572,7 +476,7 @@ export default function CVPage() {
               </Button>
             )}
             {profile.linkedin_url && (
-              <Button size="lg" variant="outline" asChild>
+              <Button size="lg" variant="outline" className="gradient-card" asChild>
                 <a href={profile.linkedin_url} target="_blank" rel="noopener noreferrer">
                   <Linkedin className="mr-2 h-5 w-5" />
                   Connect on LinkedIn
@@ -584,27 +488,34 @@ export default function CVPage() {
         </div>
       </section>
 
-      {/* Footer */} 
-      <footer className="border-t border-border/40">
+      <div className="section-divider" />
+
+      {/* Footer */}
+      <footer className="border-t border-border/40 bg-card/50 backdrop-blur">
         <div className="container mx-auto px-4 max-w-screen-2xl">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-4 py-6">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-4 py-8">
             <p className="text-center text-sm leading-loose text-muted-foreground md:text-left">
-              Built with Next.js, Shadcn/ui, and Supabase. © {new Date().getFullYear()} {profile.full_name}
+              Built with <span className="text-primary">Next.js</span>, <span className="text-primary">Tailwind CSS</span>, and <span className="text-primary">Supabase</span>
+              <br className="md:hidden" />
+              <span className="hidden md:inline"> • </span>
+              © {new Date().getFullYear()} {profile.full_name}
             </p>
             <div className="flex items-center gap-4">
               {profile.github_url && (
-                <a href={profile.github_url} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-foreground transition-colors">
+                <a href={profile.github_url} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary transition-colors">
                   <Github className="h-5 w-5" />
                 </a>
               )}
               {profile.linkedin_url && (
-                <a href={profile.linkedin_url} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-foreground transition-colors">
+                <a href={profile.linkedin_url} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary transition-colors">
                   <Linkedin className="h-5 w-5" />
                 </a>
               )}
             </div>
           </div>
-          <VisitorCounter />
+          <div className="pb-6">
+            <VisitorCounter />
+          </div>
         </div>
       </footer>
     </div>
