@@ -75,13 +75,6 @@ export default function LoginPage() {
               {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Sign In
             </Button>
-
-            <p className="text-sm text-muted-foreground text-center">
-              Don't have an account?{' '}
-              <a href="/admin/register" className="text-primary hover:underline">
-                Register
-              </a>
-            </p>
           </form>
         </CardContent>
       </Card>

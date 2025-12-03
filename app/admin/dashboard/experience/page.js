@@ -80,7 +80,7 @@ export default function ExperiencePage() {
     setNewAchievement({ achievement: '', category: '' })
     setNewTech('')
   }
-
+ 
   const handleEdit = (exp) => {
     // Extract technologies from nested structure
     const techs = exp.technologies_used?.[0]?.technologies || []
@@ -90,8 +90,8 @@ export default function ExperiencePage() {
       position: exp.position || '',
       location: exp.location || '',
       employment_type: exp.employment_type || '',
-      start_date: exp.start_date || '',
-      end_date: exp.end_date || '',
+      start_date: exp.start_date || '',  // Already in YYYY-MM-DD format
+      end_date: exp.end_date || '',      // Already in YYYY-MM-DD format
       is_current: exp.is_current || false,
       description: exp.description || '',
       achievements: exp.work_achievements || [],
@@ -105,6 +105,7 @@ export default function ExperiencePage() {
     // Scroll to form
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
+
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -121,9 +122,19 @@ export default function ExperiencePage() {
         throw new Error('Profile not found. Please create a profile first.')
       }
 
+      // Convert empty strings to null for date fields
       const payload = {
-        ...form,
-        profile_id: profileData.id
+        company_name: form.company_name,
+        position: form.position,
+        location: form.location || null,
+        employment_type: form.employment_type || null,
+        start_date: form.start_date || null,
+        end_date: form.is_current ? null : (form.end_date || null),
+        is_current: form.is_current,
+        description: form.description || null,
+        profile_id: profileData.id,
+        achievements: form.achievements,
+        technologies: form.technologies
       }
 
       if (editingId) {
@@ -322,20 +333,30 @@ export default function ExperiencePage() {
                   <Input
                     id="end_date"
                     type="date"
-                    value={form.end_date}
+                    value={form.is_current ? '' : (form.end_date || '')}
                     onChange={(e) => setForm({...form, end_date: e.target.value})}
                     disabled={saving || form.is_current}
+                    className={form.is_current ? 'bg-muted cursor-not-allowed' : ''}
                   />
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 mt-2">
                     <input
                       type="checkbox"
                       id="is_current"
                       checked={form.is_current}
-                      onChange={(e) => setForm({...form, is_current: e.target.checked, end_date: e.target.checked ? '' : form.end_date})}
+                      onChange={(e) => {
+                        const checked = e.target.checked
+                        setForm({
+                          ...form, 
+                          is_current: checked,
+                          end_date: checked ? '' : form.end_date
+                        })
+                      }}
                       disabled={saving}
-                      className="rounded"
+                      className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
                     />
-                    <Label htmlFor="is_current" className="font-normal">Currently working here</Label>
+                    <Label htmlFor="is_current" className="font-normal cursor-pointer text-sm">
+                      I currently work here
+                    </Label>
                   </div>
                 </div>
               </div>

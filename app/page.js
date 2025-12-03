@@ -59,12 +59,20 @@ export default function CVPage() {
     const date = new Date(dateString)
     return date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
   }
-
+ 
   const calculateDuration = (startDate, endDate, isCurrent) => {
-    const start = new Date(startDate)
-    const end = isCurrent ? new Date() : new Date(endDate)
+    if (!startDate) return ''
     
-    const months = (end.getFullYear() - start.getFullYear()) * 12 + (end.getMonth() - start.getMonth())
+    const start = new Date(startDate)
+    const end = isCurrent ? new Date() : (endDate ? new Date(endDate) : new Date())
+    
+    // Calculate months difference
+    let months = (end.getFullYear() - start.getFullYear()) * 12
+    months += end.getMonth() - start.getMonth()
+    
+    // Handle negative months (shouldn't happen but just in case)
+    if (months < 0) months = 0
+    
     const years = Math.floor(months / 12)
     const remainingMonths = months % 12
     
@@ -254,12 +262,14 @@ export default function CVPage() {
                         <div className="flex items-center gap-2 text-sm text-muted-foreground">
                           <Calendar className="h-3 w-3" />
                           <span>
-                            {formatDate(exp.start_date)} - {exp.is_current ? 'Present' : formatDate(exp.end_date)}
+                            {formatDate(exp.start_date)} - {exp.is_current ? 'Present' : (exp.end_date ? formatDate(exp.end_date) : 'Present')}
                           </span>
-                          <span className="text-xs">
-                            • {calculateDuration(exp.start_date, exp.end_date, exp.is_current)}
-                          </span>
-                        </div>
+                          {exp.start_date && (
+                            <span className="text-xs">
+                              • {calculateDuration(exp.start_date, exp.end_date, exp.is_current)}
+                            </span>
+                          )}
+                        </div> 
                       </div>
                     </div>
 

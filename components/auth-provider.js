@@ -47,13 +47,6 @@ export function AuthProvider({ children }) {
       }
       return { data, error }
     },
-    signUp: async (email, password) => {
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-      })
-      return { data, error }
-    },
     signOut: async () => {
       await supabase.auth.signOut()
       router.push('/admin/login')
