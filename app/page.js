@@ -463,7 +463,7 @@ export default async function Home() {
               Let's Work Together
             </h2>
             <p className="max-w-[600px] text-lg text-muted-foreground">
-              I'm available for freelance work and new opportunities. Let's create something amazing together.
+              I'm available for new opportunities. Let's create something amazing together.
             </p>
           </div>
           <div className="flex flex-wrap gap-4 justify-center mt-6">
@@ -489,35 +489,68 @@ export default async function Home() {
       </section>
 
       <div className="section-divider" />
-
+ 
       {/* Footer */}
       <footer className="border-t border-border/40 bg-card/50 backdrop-blur">
         <div className="container mx-auto px-4 max-w-screen-2xl">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-4 py-8">
-            <p className="text-center text-sm leading-loose text-muted-foreground md:text-left">
-              Built with <span className="text-primary">Next.js</span>, <span className="text-primary">Tailwind CSS</span>, and <span className="text-primary">Supabase</span>
-              <br className="md:hidden" />
-              <span className="hidden md:inline"> • </span>
-              © {new Date().getFullYear()} {profile.full_name}
-            </p>
-            <div className="flex items-center gap-4">
+          <div className="flex flex-col items-center justify-center gap-6 py-10">
+            {/* Social Links */}
+            <div className="flex items-center gap-6">
               {profile.github_url && (
-                <a href={profile.github_url} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary transition-colors">
-                  <Github className="h-5 w-5" />
+                <a 
+                  href={profile.github_url} 
+                  target="_blank" 
+                  rel="noopener noreferrer" 
+                  className="text-muted-foreground hover:text-primary transition-all hover:scale-110"
+                  aria-label="GitHub"
+                >
+                  <Github className="h-6 w-6" />
                 </a>
               )}
               {profile.linkedin_url && (
-                <a href={profile.linkedin_url} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary transition-colors">
-                  <Linkedin className="h-5 w-5" />
+                <a 
+                  href={profile.linkedin_url} 
+                  target="_blank" 
+                  rel="noopener noreferrer" 
+                  className="text-muted-foreground hover:text-primary transition-all hover:scale-110"
+                  aria-label="LinkedIn"
+                >
+                  <Linkedin className="h-6 w-6" />
                 </a>
               )}
             </div>
-          </div>
-          <div className="pb-6">
-            <VisitorCounter />
+
+            {/* Built With */}
+            <div className="flex flex-wrap items-center justify-center gap-2 text-sm text-muted-foreground">
+              <span>Built with</span>
+              <span className="text-primary font-medium">Next.js</span>
+              <span>•</span>
+              <span className="text-primary font-medium">Tailwind CSS</span>
+              <span>•</span>
+              <span className="text-primary font-medium">Supabase</span>
+              <span>•</span>
+              <span className="text-primary font-medium">Vercel</span>
+            </div>
+
+            {/* Copyright */}
+            <div className="text-center">
+              <p className="text-sm text-muted-foreground">
+                © {new Date().getFullYear()} <span className="text-foreground font-medium">{profile.full_name}</span>
+              </p>
+              <p className="text-xs text-muted-foreground/60 mt-1">
+                All rights reserved
+              </p>
+            </div>
+
+            {/* Visitor Counter */}
+            <div className="pt-2">
+              <VisitorCounter />
+            </div>
           </div>
         </div>
       </footer>
+
+
     </div>
   )
 }
