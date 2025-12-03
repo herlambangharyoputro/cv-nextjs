@@ -2,7 +2,7 @@
 import { usePathname } from 'next/navigation'
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
-import { ScrollArea } from "@/components/ui/scroll-area"
+import { ScrollArea } from "@/components/ui/scroll-area" 
 import { 
   LayoutDashboard, 
   User, 
@@ -10,7 +10,7 @@ import {
   Award, 
   GraduationCap,
   FileText,
-  Settings
+  Settings 
 } from "lucide-react"
 
 const sidebarNav = [
@@ -43,7 +43,7 @@ const sidebarNav = [
     title: "Certifications",
     href: "/admin/dashboard/certifications",
     icon: FileText
-  },
+  } 
 ]
 
 export function AdminSidebar() {

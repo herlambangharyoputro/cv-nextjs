@@ -6,6 +6,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 import { Mail, Phone, MapPin, Github, Linkedin, Globe, Briefcase, GraduationCap, Award, ExternalLink, ArrowRight, Calendar, MapPinIcon } from 'lucide-react'
+import VisitorCounter from '@/components/visitor-counter'
 
 export default function CVPage() {
   const [profile, setProfile] = useState(null)
@@ -583,7 +584,7 @@ export default function CVPage() {
         </div>
       </section>
 
-      {/* Footer */}
+      {/* Footer */} 
       <footer className="border-t border-border/40">
         <div className="container mx-auto px-4 max-w-screen-2xl">
           <div className="flex flex-col md:flex-row items-center justify-between gap-4 py-6">
@@ -603,6 +604,7 @@ export default function CVPage() {
               )}
             </div>
           </div>
+          <VisitorCounter />
         </div>
       </footer>
     </div>

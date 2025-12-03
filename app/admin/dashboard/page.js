@@ -1,5 +1,6 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Users, Briefcase, Award, GraduationCap } from "lucide-react"
+import VisitorStatsCards from "@/components/visitor-stats-cards"
 
 export default function DashboardPage() {
   return (
@@ -10,6 +11,20 @@ export default function DashboardPage() {
           Overview of your CV content
         </p>
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Welcome to Admin Dashboard</CardTitle>
+          <CardDescription>
+            Use the sidebar to navigate and manage your CV content
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-muted-foreground">
+            Start by adding your profile information, then add your work experiences, skills, and education.
+          </p>
+        </CardContent>
+      </Card>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
@@ -73,19 +88,13 @@ export default function DashboardPage() {
         </Card>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Welcome to Admin Dashboard</CardTitle>
-          <CardDescription>
-            Use the sidebar to navigate and manage your CV content
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <p className="text-sm text-muted-foreground">
-            Start by adding your profile information, then add your work experiences, skills, and education.
-          </p>
-        </CardContent>
-      </Card>
+      {/* Visitor Statistics Section */}
+      <div>
+        <h3 className="text-xl font-semibold mb-4">Visitor Statistics</h3>
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          <VisitorStatsCards />
+        </div>
+      </div>
     </div>
   )
 }

@@ -1,117 +1,166 @@
-import { promises as fs } from 'fs';
-import path from 'path';
-import { NextResponse } from 'next/server';
-
-const DATA_DIR = path.join(process.cwd(), 'data', 'visitors');
-const STATS_FILE = path.join(DATA_DIR, 'stats.json');
-
-// Ensure data directory exists
-async function ensureDataDir() {
-  try {
-    await fs.mkdir(DATA_DIR, { recursive: true });
-  } catch (error) {
-    // Directory already exists
-  }
-}
-
-// Get current stats
-async function getStats() {
-  try {
-    const data = await fs.readFile(STATS_FILE, 'utf8');
-    return JSON.parse(data);
-  } catch (error) {
-    // File doesn't exist yet, return initial structure
-    return {
-      totalVisits: 0,
-      uniqueVisitors: 0,
-      dailyStats: {},
-      lastUpdated: new Date().toISOString()
-    };
-  }
-}
-
-// Save stats
-async function saveStats(stats) {
-  await ensureDataDir();
-  await fs.writeFile(STATS_FILE, JSON.stringify(stats, null, 2));
-}
+import { supabase } from '@/lib/supabase'
+import { NextResponse } from 'next/server'
 
 // Get today's date string (YYYY-MM-DD)
 function getTodayDate() {
-  const today = new Date();
-  return today.toISOString().split('T')[0];
+  const today = new Date()
+  return today.toISOString().split('T')[0]
 }
 
 // GET - Retrieve visitor statistics
 export async function GET() {
   try {
-    const stats = await getStats();
-    const today = getTodayDate();
+    const today = getTodayDate()
+    
+    // Get all stats
+    const { data: allStats, error: allError } = await supabase
+      .from('visitor_stats')
+      .select('*')
+      .order('visit_date', { ascending: false })
+    
+    if (allError) throw allError
+    
+    // Calculate totals
+    const totalVisits = allStats.reduce((sum, stat) => sum + stat.total_visits, 0)
+    const totalUnique = allStats.reduce((sum, stat) => sum + stat.unique_visitors, 0)
+    
+    // Get today's stats
+    const todayStats = allStats.find(stat => stat.visit_date === today) || {
+      total_visits: 0,
+      unique_visitors: 0
+    }
+    
+    // Build daily stats object
+    const dailyStats = {}
+    allStats.forEach(stat => {
+      dailyStats[stat.visit_date] = {
+        visits: stat.total_visits,
+        unique: stat.unique_visitors
+      }
+    })
     
     return NextResponse.json({
-      totalVisits: stats.totalVisits,
-      uniqueVisitors: stats.uniqueVisitors,
-      todayVisits: stats.dailyStats[today]?.visits || 0,
-      todayUnique: stats.dailyStats[today]?.unique || 0,
-      dailyStats: stats.dailyStats,
-      lastUpdated: stats.lastUpdated
-    });
+      totalVisits,
+      uniqueVisitors: totalUnique,
+      todayVisits: todayStats.total_visits,
+      todayUnique: todayStats.unique_visitors,
+      dailyStats,
+      lastUpdated: allStats[0]?.updated_at || new Date().toISOString()
+    })
   } catch (error) {
+    console.error('Error getting visitor stats:', error)
     return NextResponse.json(
       { error: 'Failed to get visitor stats' },
       { status: 500 }
-    );
+    )
   }
 }
 
 // POST - Record a new visit
 export async function POST(request) {
   try {
-    const body = await request.json();
-    const { sessionId } = body; // sessionId untuk tracking unique visitors
+    const body = await request.json()
+    const { sessionId } = body
     
-    const stats = await getStats();
-    const today = getTodayDate();
-    
-    // Initialize today's stats if not exists
-    if (!stats.dailyStats[today]) {
-      stats.dailyStats[today] = {
-        visits: 0,
-        unique: 0,
-        visitors: []
-      };
+    if (!sessionId) {
+      return NextResponse.json(
+        { error: 'Session ID is required' },
+        { status: 400 }
+      )
     }
     
-    // Increment total visits
-    stats.totalVisits++;
-    stats.dailyStats[today].visits++;
+    const today = getTodayDate()
     
-    // Check if this is a unique visitor for today
-    const isNewVisitor = !stats.dailyStats[today].visitors.includes(sessionId);
+    // Get or create today's record
+    let { data: todayRecord, error: fetchError } = await supabase
+      .from('visitor_stats')
+      .select('*')
+      .eq('visit_date', today)
+      .single()
     
-    if (isNewVisitor) {
-      stats.dailyStats[today].unique++;
-      stats.dailyStats[today].visitors.push(sessionId);
-      stats.uniqueVisitors++;
+    if (fetchError && fetchError.code !== 'PGRST116') {
+      // PGRST116 = no rows returned, which is fine
+      throw fetchError
     }
     
-    stats.lastUpdated = new Date().toISOString();
+    // If no record exists for today, create one
+    if (!todayRecord) {
+      const { data: newRecord, error: insertError } = await supabase
+        .from('visitor_stats')
+        .insert({
+          visit_date: today,
+          total_visits: 1,
+          unique_visitors: 1,
+          session_ids: [sessionId]
+        })
+        .select()
+        .single()
+      
+      if (insertError) throw insertError
+      
+      // Get total stats
+      const { data: allStats } = await supabase
+        .from('visitor_stats')
+        .select('total_visits, unique_visitors')
+      
+      const totalVisits = allStats.reduce((sum, stat) => sum + stat.total_visits, 0)
+      const totalUnique = allStats.reduce((sum, stat) => sum + stat.unique_visitors, 0)
+      
+      return NextResponse.json({
+        success: true,
+        totalVisits,
+        uniqueVisitors: totalUnique,
+        todayVisits: 1,
+        todayUnique: 1,
+        isNewVisitor: true
+      })
+    }
     
-    await saveStats(stats);
+    // Check if this session has already visited today
+    const sessionIds = todayRecord.session_ids || []
+    const isNewVisitor = !sessionIds.includes(sessionId)
+    
+    // Update the record
+    const newSessionIds = isNewVisitor 
+      ? [...sessionIds, sessionId]
+      : sessionIds
+    
+    const { data: updatedRecord, error: updateError } = await supabase
+      .from('visitor_stats')
+      .update({
+        total_visits: todayRecord.total_visits + 1,
+        unique_visitors: isNewVisitor 
+          ? todayRecord.unique_visitors + 1 
+          : todayRecord.unique_visitors,
+        session_ids: newSessionIds
+      })
+      .eq('visit_date', today)
+      .select()
+      .single()
+    
+    if (updateError) throw updateError
+    
+    // Get total stats
+    const { data: allStats } = await supabase
+      .from('visitor_stats')
+      .select('total_visits, unique_visitors')
+    
+    const totalVisits = allStats.reduce((sum, stat) => sum + stat.total_visits, 0)
+    const totalUnique = allStats.reduce((sum, stat) => sum + stat.unique_visitors, 0)
     
     return NextResponse.json({
       success: true,
-      totalVisits: stats.totalVisits,
-      uniqueVisitors: stats.uniqueVisitors,
-      todayVisits: stats.dailyStats[today].visits,
-      todayUnique: stats.dailyStats[today].unique,
+      totalVisits,
+      uniqueVisitors: totalUnique,
+      todayVisits: updatedRecord.total_visits,
+      todayUnique: updatedRecord.unique_visitors,
       isNewVisitor
-    });
+    })
   } catch (error) {
-    console.error('Error recording visit:', error);
+    console.error('Error recording visit:', error)
     return NextResponse.json(
       { error: 'Failed to record visit' },
       { status: 500 }
-    );
+    )
   }
 }
